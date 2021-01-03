@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request, jsonify, abort
+from werkzeug.exceptions import HTTPException
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
@@ -78,13 +79,13 @@ def post_drinks():
     try:
         req_title = request.json['title']
         req_recipe = request.json['recipe']
-    except:
+    except Exception as e:
         abort(400)
     s_req_recipe = str(req_recipe).replace("'", '"')
     try:
         drink = Drink(title=req_title, recipe=s_req_recipe)
         drink.insert()
-    except:
+    except Exception as e:
         abort(422)
     drinks = [drink.long()]
     return jsonify({"success": True, "drinks": drinks})
@@ -119,7 +120,7 @@ def patch_drinks(drink_id):
     drink.recipe = s_req_recipe if req_recipe is not None else drink.recipe
     try:
         drink.update()
-    except:
+    except Exception as e:
         abort(422)
     drinks = [drink.long()]
     return jsonify({"success": True, "drinks": drinks})
@@ -146,7 +147,7 @@ def delete_drinks(drink_id):
     try:
         drink.delete()
         return jsonify({"success": True, "delete": drink_id})
-    except:
+    except Exception as e:
         abort(422)
 
 
@@ -195,28 +196,8 @@ def notfound(error):
 '''
 
 
-@app.errorhandler(400)
-def client_error(error):
-    return jsonify({
-            "success": False,
-            "error": 400,
-            "message": "Bad Request"
-            }), 400
-
-
-@app.errorhandler(401)
-def auth_error(error):
-    return jsonify({
-            "success": False,
-            "error": 401,
-            "message": "Bad Request"
-            }), 401
-
-
-@app.errorhandler(403)
-def auth_error(error):
-    return jsonify({
-            "success": False,
-            "error": 401,
-            "message": "Bad Request"
-            }), 401
+@app.errorhandler(HTTPException)
+def handle_auth_error(ex):
+    response = jsonify(ex.error)
+    response.status_code = ex.status_code
+    return response

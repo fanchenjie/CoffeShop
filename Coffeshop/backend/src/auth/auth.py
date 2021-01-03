@@ -83,7 +83,7 @@ def check_permissions(permission, payload):
         raise AuthError({
             'code': 'unauthorized',
             'description': 'Permission not found.'
-        }, 403)
+        }, 401)
     return True
 '''
 @TODO implement verify_decode_jwt(token) method
@@ -168,18 +168,9 @@ def requires_auth(permission=''):
     def requires_auth_decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            try:
-                token = get_token_auth_header()
-            except AuthError as e:
-                abort(e.status_code)
-            try:
-                payload = verify_decode_jwt(token)
-            except:
-                abort(401)
-            try:
-                check_permissions(permission, payload)
-            except AuthError as e:
-                abort(e.status_code)
+            token = get_token_auth_header()
+            payload = verify_decode_jwt(token)
+            check_permissions(permission, payload)
             return f(*args, **kwargs)
 
         return wrapper
