@@ -50,8 +50,7 @@ def get_drinks_detail():
     drinks = Drink.query.all()
     if len(drinks) == 0:
         abort(404)
-    long_drinks = [drink.long() for drink in drinks]
-   
+    long_drinks = [drink.long() for drink in drinks] 
     return jsonify({'success':True,
                     'drinks':long_drinks})
 
@@ -78,7 +77,8 @@ def post_drinks():
         drink.insert()
     except:
         abort(422)
-    return jsonify({"success": True, "drinks": drink.long()})
+    drinks = [drink.long()]
+    return jsonify({"success": True, "drinks": drinks})
 
 '''
 @TODO implement endpoint
@@ -97,19 +97,20 @@ def patch_drinks(drink_id):
     drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
     if drink is None:
         abort(404)
-    try:
-        req_title = request.json['title']
-        req_recipe = request.json['recipe']      
-    except:
+    req_title = request.json.get('title', None)
+    req_recipe = request.json.get('recipe', None)
+    if req_recipe is None and req_title is None:
         abort(400)
-    s_req_recipe = str(req_recipe).replace("'",'"')
+    if req_recipe is not None:
+        s_req_recipe = str(req_recipe).replace("'",'"')
+    drink.title = req_title if req_title is not None else drink.title
+    drink.recipe = s_req_recipe if req_recipe is not None else drink.recipe
     try:
-        drink.title = req_title
-        drink.recipe = s_req_recipe
         drink.update()
     except:
         abort(422)
-    return jsonify({"success": True, "drinks": drink.long()})
+    drinks = [drink.long()]
+    return jsonify({"success": True, "drinks": drinks})
 
 '''
 @TODO implement endpoint
@@ -174,9 +175,25 @@ def notfound(error):
     error handler should conform to general task above 
 '''
 @app.errorhandler(400)
-def internal_error(error):
+def client_error(error):
     return jsonify({
             "success": False,
             "error": 400,
             "message": "Bad Request"
             }), 400
+
+@app.errorhandler(401)
+def auth_error(error):
+    return jsonify({
+            "success": False,
+            "error": 401,
+            "message": "Bad Request"
+            }), 401
+
+@app.errorhandler(403)
+def auth_error(error):
+    return jsonify({
+            "success": False,
+            "error": 401,
+            "message": "Bad Request"
+            }), 401
