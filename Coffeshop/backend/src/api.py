@@ -51,7 +51,7 @@ def get_drinks_detail():
     if len(drinks) == 0:
         abort(404)
     long_drinks = [drink.long() for drink in drinks]
-    print(long_drinks)
+   
     return jsonify({'success':True,
                     'drinks':long_drinks})
 
@@ -66,18 +66,13 @@ def get_drinks_detail():
 '''
 @app.route('/drinks', methods = ['POST'])
 @requires_auth(permission='post:drinks')
-def post_drinks():
-
-    print(request.json)
+def post_drinks():    
     try:
         req_title = request.json['title']
-        req_recipe = request.json['recipe']
-        print(req_recipe)
+        req_recipe = request.json['recipe']       
     except:
         abort(400)
-    
     s_req_recipe = str(req_recipe).replace("'",'"')
-
     try:
         drink = Drink(title=req_title, recipe=s_req_recipe)
         drink.insert()
@@ -96,9 +91,25 @@ def post_drinks():
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
         or appropriate status code indicating reason for failure
 '''
-# @app.route('/drinks/<int:drink_id>', methods = ['PATCH'])
-# @requires_auth(permission='patch:drinks')
-# def 
+@app.route('/drinks/<int:drink_id>', methods = ['PATCH'])
+@requires_auth(permission='patch:drinks')
+def patch_drinks(drink_id):
+    drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+    if drink is None:
+        abort(404)
+    try:
+        req_title = request.json['title']
+        req_recipe = request.json['recipe']      
+    except:
+        abort(400)
+    s_req_recipe = str(req_recipe).replace("'",'"')
+    try:
+        drink.title = req_title
+        drink.recipe = s_req_recipe
+        drink.update()
+    except:
+        abort(422)
+    return jsonify({"success": True, "drinks": drink.long()})
 
 '''
 @TODO implement endpoint
