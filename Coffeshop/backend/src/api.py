@@ -30,6 +30,8 @@ db_drop_and_create_all()
 @app.route('/drinks')
 def get_drinks():
     drinks = Drink.query.all()
+    if len(drinks) == 0:
+        abort(404)
     short_drinks = [drink.short() for drink in drinks]
     return jsonify({'success':True,
                     'drinks':short_drinks})
@@ -46,7 +48,10 @@ def get_drinks():
 @requires_auth(permission='get:drinks-detail')
 def get_drinks_detail():
     drinks = Drink.query.all()
+    if len(drinks) == 0:
+        abort(404)
     long_drinks = [drink.long() for drink in drinks]
+    print(long_drinks)
     return jsonify({'success':True,
                     'drinks':long_drinks})
 
@@ -59,7 +64,26 @@ def get_drinks_detail():
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks', methods = ['POST'])
+@requires_auth(permission='post:drinks')
+def post_drinks():
 
+    print(request.json)
+    try:
+        req_title = request.json['title']
+        req_recipe = request.json['recipe']
+        print(req_recipe)
+    except:
+        abort(400)
+    
+    s_req_recipe = str(req_recipe).replace("'",'"')
+
+    try:
+        drink = Drink(title=req_title, recipe=s_req_recipe)
+        drink.insert()
+    except:
+        abort(422)
+    return jsonify({"success": True, "drinks": drink.long()})
 
 '''
 @TODO implement endpoint
@@ -72,7 +96,9 @@ def get_drinks_detail():
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
         or appropriate status code indicating reason for failure
 '''
-
+# @app.route('/drinks/<int:drink_id>', methods = ['PATCH'])
+# @requires_auth(permission='patch:drinks')
+# def 
 
 '''
 @TODO implement endpoint
@@ -84,6 +110,17 @@ def get_drinks_detail():
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks/<int:drink_id>', methods = ['DELETE'])
+@requires_auth(permission='delete:drinks')
+def delete_drinks(drink_id):
+    drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+    if drink is None:
+        abort(404)
+    try:
+        drink.delete()
+        return jsonify({"success": True, "delete": drink_id})
+    except:
+        abort(422)
 
 
 ## Error Handling
@@ -113,9 +150,22 @@ def unprocessable(error):
 @TODO implement error handler for 404
     error handler should conform to general task above 
 '''
-
+@app.errorhandler(404)
+def notfound(error):
+    return jsonify({
+                    "success": False, 
+                    "error": 404,
+                    "message": "resource not found"
+                    }), 404
 
 '''
 @TODO implement error handler for AuthError
     error handler should conform to general task above 
 '''
+@app.errorhandler(400)
+def internal_error(error):
+    return jsonify({
+            "success": False,
+            "error": 400,
+            "message": "Bad Request"
+            }), 400
